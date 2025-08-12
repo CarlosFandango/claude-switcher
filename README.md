@@ -11,6 +11,16 @@ A bash utility for managing AI configuration profiles and LiteLLM model switchin
 
 ## Installation
 
+### Quick Setup (Recommended)
+```bash
+# Run the automated installer
+chmod +x install.sh
+./install.sh
+```
+
+The installer handles everything: dependencies, AI CLI verification, script installation, and initial setup.
+
+### Manual Installation
 1. Copy the `claude-switch` script to `/usr/local/bin/`:
    ```bash
    cp claude-switch /usr/local/bin/
@@ -21,6 +31,8 @@ A bash utility for managing AI configuration profiles and LiteLLM model switchin
    ```bash
    cp litellm.md ~/.claude/commands/
    ```
+
+See [INSTALLATION.md](INSTALLATION.md) for detailed setup instructions.
 
 ## Usage
 

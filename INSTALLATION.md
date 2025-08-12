@@ -1,16 +1,64 @@
 # Installation Guide
 
-## Prerequisites
+## Quick Installation (Recommended)
 
-Before installing, ensure you have the following tools available:
+For automated installation with all dependencies and setup:
 
 ```bash
-# Check for required tools
-command -v jq >/dev/null 2>&1 || echo "jq is required - install with: brew install jq"
-command -v curl >/dev/null 2>&1 || echo "curl is required"
+# Clone or download the repository
+cd claude-switch
+
+# Run the automated installer
+chmod +x install.sh
+./install.sh
 ```
 
-## Step 1: Install Main Script
+The installer will:
+- Check for AI CLI (and prompt to install if missing)
+- Install required dependencies (jq, curl)
+- Install the main script to `/usr/local/bin/`
+- Set up AI CLI integration
+- Guide you through initial configuration
+
+## Prerequisites
+
+The installer will check for these automatically, but you can verify manually:
+
+### Required: AI CLI
+This tool requires an AI CLI to be installed first:
+
+```bash
+# Check if AI CLI is available
+command -v claude >/dev/null 2>&1 && echo "AI CLI found" || echo "AI CLI not found"
+```
+
+**To install AI CLI:**
+1. Visit: https://docs.anthropic.com/en/docs/claude-code/quickstart
+2. Follow installation instructions for your platform
+3. Quick install (macOS): `curl -fsSL https://claude.ai/install.sh | sh`
+
+### Dependencies (Auto-installed)
+- `jq` - JSON processing
+- `curl` - API calls
+
+## Manual Installation
+
+If you prefer manual installation or the automated installer fails:
+
+### Step 1: Install Dependencies
+
+```bash
+# macOS
+brew install jq curl
+
+# Ubuntu/Debian
+sudo apt-get install jq curl
+
+# CentOS/RHEL
+sudo yum install jq curl
+```
+
+### Step 2: Install Main Script
 
 ```bash
 # Make the script executable
@@ -23,9 +71,7 @@ sudo cp claude-switch /usr/local/bin/
 claude-switch help
 ```
 
-## Step 2: Install AI CLI Integration (Optional)
-
-If you're using an AI CLI that supports slash commands:
+### Step 3: Install AI CLI Integration
 
 ```bash
 # Create commands directory if it doesn't exist
@@ -38,25 +84,18 @@ cp litellm.md ~/.claude/commands/
 # /litellm
 ```
 
-## Step 3: Initial Setup
+### Step 4: Initial Setup
 
-### Personal Configuration
-
+#### Personal Configuration
 If you already have an AI configuration, it will be automatically backed up as your "personal" profile on first use.
 
-### Work Configuration (LiteLLM)
-
+#### Work Configuration (LiteLLM)
 ```bash
 # Set up work profile - you'll be prompted for your LiteLLM API key
 claude-switch work
 ```
 
-This will create a work configuration with:
-- Your LiteLLM API endpoint
-- Default model preferences
-- Optimized settings for work use
-
-## Step 4: Verification
+### Step 5: Verification
 
 ```bash
 # Check status
