@@ -1,0 +1,308 @@
+#!/bin/bash
+
+# Claude Configuration Switcher
+# Switches between personal and work Claude configurations
+
+CLAUDE_CONFIG_DIR="$HOME/.claude"
+BACKUP_DIR="$CLAUDE_CONFIG_DIR/profiles"
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Create backup directory if it doesn't exist
+mkdir -p "$BACKUP_DIR"
+
+show_help() {
+    echo "Claude Configuration Switcher"
+    echo ""
+    echo "Usage: claude-switch [COMMAND] [OPTIONS]"
+    echo ""
+    echo "Commands:"
+    echo "  personal   Switch to personal Claude configuration"
+    echo "  work       Switch to work Claude configuration (LiteLLM)"
+    echo "  status     Show current configuration"
+    echo "  backup     Backup current configuration"
+    echo "  model      Manage LiteLLM models"
+    echo "    list     List available models"
+    echo "    set <model>  Switch to specific model"
+    echo "    current  Show current model"
+    echo "  help       Show this help message"
+    echo ""
+}
+
+backup_current_config() {
+    local profile_name="$1"
+    echo -e "${YELLOW}Backing up current configuration as '$profile_name'...${NC}"
+    
+    # Create profile directory
+    mkdir -p "$BACKUP_DIR/$profile_name"
+    
+    # Copy configuration files if they exist
+    if [ -f "$CLAUDE_CONFIG_DIR/settings.json" ]; then
+        cp "$CLAUDE_CONFIG_DIR/settings.json" "$BACKUP_DIR/$profile_name/"
+    fi
+    
+    
+    echo -e "${GREEN}Configuration backed up to $BACKUP_DIR/$profile_name${NC}"
+}
+
+restore_config() {
+    local profile_name="$1"
+    
+    if [ ! -d "$BACKUP_DIR/$profile_name" ]; then
+        echo -e "${RED}Profile '$profile_name' not found!${NC}"
+        echo "Available profiles:"
+        ls -1 "$BACKUP_DIR" 2>/dev/null || echo "  No profiles found"
+        return 1
+    fi
+    
+    echo -e "${YELLOW}Switching to '$profile_name' configuration...${NC}"
+    
+    # Remove current config files (backup first if not already backed up)
+    if [ -f "$CLAUDE_CONFIG_DIR/settings.json" ] && [ ! -d "$BACKUP_DIR/current" ]; then
+        backup_current_config "current"
+    fi
+    
+    # Restore from backup
+    if [ -f "$BACKUP_DIR/$profile_name/settings.json" ]; then
+        cp "$BACKUP_DIR/$profile_name/settings.json" "$CLAUDE_CONFIG_DIR/"
+    fi
+    
+    echo -e "${GREEN}Switched to '$profile_name' configuration${NC}"
+}
+
+setup_work_config() {
+    echo -e "${YELLOW}Setting up work configuration with LiteLLM...${NC}"
+    
+    # Backup current config if it exists
+    if [ -f "$CLAUDE_CONFIG_DIR/settings.json" ]; then
+        backup_current_config "personal"
+    fi
+    
+    # Create work configuration
+    mkdir -p "$BACKUP_DIR/work"
+    
+    echo -e "${YELLOW}Please enter your LiteLLM API key:${NC}"
+    read -s litellm_key
+    
+    cat > "$BACKUP_DIR/work/settings.json" << EOF
+{
+  "env": {
+    "ANTHROPIC_AUTH_TOKEN": "$litellm_key",
+    "CLAUDE_CODE_ENABLE_TELEMETRY": "0",
+    "ANTHROPIC_MODEL": "claude-sonnet-4-20250514",
+    "ANTHROPIC_SMALL_FAST_MODEL": "claude-3-5-haiku-20241022",
+    "ANTHROPIC_BASE_URL": "https://litellm.example.com",
+    "CLOUD_ML_REGION": "us-east5"
+  }
+}
+EOF
+    
+    # Apply work configuration
+    restore_config "work"
+    
+    echo -e "${GREEN}Work configuration created and activated!${NC}"
+}
+
+show_status() {
+    echo "Claude Configuration Status:"
+    echo ""
+    
+    if [ -f "$CLAUDE_CONFIG_DIR/settings.json" ]; then
+        echo "Current settings file exists"
+        if command -v jq > /dev/null 2>&1; then
+            echo "Base URL: $(jq -r '.env.ANTHROPIC_BASE_URL // "default"' "$CLAUDE_CONFIG_DIR/settings.json")"
+            echo "Model: $(jq -r '.env.ANTHROPIC_MODEL // "default"' "$CLAUDE_CONFIG_DIR/settings.json")"
+            echo "Telemetry: $(jq -r '.env.CLAUDE_CODE_ENABLE_TELEMETRY // "default"' "$CLAUDE_CONFIG_DIR/settings.json")"
+        fi
+    else
+        echo "No settings file found"
+    fi
+    
+    echo ""
+    echo "Available profiles:"
+    if [ -d "$BACKUP_DIR" ]; then
+        ls -1 "$BACKUP_DIR" 2>/dev/null || echo "  No profiles found"
+    else
+        echo "  No profiles directory found"
+    fi
+}
+
+get_litellm_models() {
+    if [ ! -f "$CLAUDE_CONFIG_DIR/settings.json" ]; then
+        echo -e "${RED}No settings file found. Please switch to work profile first.${NC}"
+        return 1
+    fi
+    
+    if ! command -v jq > /dev/null 2>&1; then
+        echo -e "${RED}jq is required but not installed. Please install jq.${NC}"
+        return 1
+    fi
+    
+    local api_key=$(jq -r '.env.ANTHROPIC_AUTH_TOKEN // empty' "$CLAUDE_CONFIG_DIR/settings.json")
+    local base_url=$(jq -r '.env.ANTHROPIC_BASE_URL // empty' "$CLAUDE_CONFIG_DIR/settings.json")
+    
+    if [ -z "$api_key" ] || [ "$api_key" = "null" ]; then
+        echo -e "${RED}No API key found in settings.${NC}"
+        return 1
+    fi
+    
+    if [ -z "$base_url" ] || [ "$base_url" = "null" ]; then
+        echo -e "${RED}No base URL found in settings.${NC}"
+        return 1
+    fi
+    
+    echo -e "${YELLOW}Fetching available models from $base_url...${NC}"
+    curl -s -H "Authorization: Bearer $api_key" "$base_url/v1/models" | jq -r '.data[]?.id // empty' 2>/dev/null
+}
+
+list_models() {
+    echo "Available LiteLLM Models:"
+    echo ""
+    
+    local models=$(get_litellm_models)
+    if [ $? -eq 0 ] && [ -n "$models" ]; then
+        echo "$models" | sort
+    else
+        echo -e "${RED}Failed to fetch models. Please check your configuration.${NC}"
+        return 1
+    fi
+}
+
+show_current_model() {
+    if [ ! -f "$CLAUDE_CONFIG_DIR/settings.json" ]; then
+        echo -e "${RED}No settings file found.${NC}"
+        return 1
+    fi
+    
+    if command -v jq > /dev/null 2>&1; then
+        local current_model=$(jq -r '.env.ANTHROPIC_MODEL // "default"' "$CLAUDE_CONFIG_DIR/settings.json")
+        echo "Current model: $current_model"
+    else
+        echo -e "${RED}jq is required to show current model.${NC}"
+        return 1
+    fi
+}
+
+set_model() {
+    local new_model="$1"
+    
+    if [ -z "$new_model" ]; then
+        echo -e "${RED}Please specify a model name.${NC}"
+        echo "Usage: claude-switch model set <model-name>"
+        return 1
+    fi
+    
+    if [ ! -f "$CLAUDE_CONFIG_DIR/settings.json" ]; then
+        echo -e "${RED}No settings file found. Please switch to work profile first.${NC}"
+        return 1
+    fi
+    
+    if ! command -v jq > /dev/null 2>&1; then
+        echo -e "${RED}jq is required but not installed. Please install jq.${NC}"
+        return 1
+    fi
+    
+    # Verify the model exists in available models
+    local available_models=$(get_litellm_models)
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}Failed to fetch available models.${NC}"
+        return 1
+    fi
+    
+    if ! echo "$available_models" | grep -q "^$new_model$"; then
+        echo -e "${RED}Model '$new_model' not found in available models.${NC}"
+        echo "Available models:"
+        echo "$available_models" | sort
+        return 1
+    fi
+    
+    echo -e "${YELLOW}Switching to model: $new_model${NC}"
+    
+    # Update the model in settings.json
+    local temp_file=$(mktemp)
+    jq ".env.ANTHROPIC_MODEL = \"$new_model\"" "$CLAUDE_CONFIG_DIR/settings.json" > "$temp_file"
+    
+    if [ $? -eq 0 ]; then
+        mv "$temp_file" "$CLAUDE_CONFIG_DIR/settings.json"
+        echo -e "${GREEN}Successfully switched to model: $new_model${NC}"
+    else
+        rm -f "$temp_file"
+        echo -e "${RED}Failed to update settings file.${NC}"
+        return 1
+    fi
+}
+
+# Main script logic
+case "$1" in
+    "personal")
+        if [ ! -d "$BACKUP_DIR/personal" ]; then
+            echo -e "${YELLOW}Personal profile not found. Current config will be saved as personal profile.${NC}"
+            backup_current_config "personal"
+        else
+            restore_config "personal"
+        fi
+        ;;
+    "work")
+        if [ ! -d "$BACKUP_DIR/work" ]; then
+            echo -e "${YELLOW}Work profile not found. Setting up new work configuration...${NC}"
+            setup_work_config
+        else
+            restore_config "work"
+        fi
+        ;;
+    "status")
+        show_status
+        ;;
+    "backup")
+        if [ -n "$2" ]; then
+            backup_current_config "$2"
+        else
+            echo -e "${RED}Please specify a backup name: claude-switch backup <name>${NC}"
+        fi
+        ;;
+    "model")
+        case "$2" in
+            "list")
+                list_models
+                ;;
+            "set")
+                if [ -n "$3" ]; then
+                    set_model "$3"
+                else
+                    echo -e "${RED}Please specify a model name: claude-switch model set <model-name>${NC}"
+                fi
+                ;;
+            "current")
+                show_current_model
+                ;;
+            "")
+                echo -e "${YELLOW}Model commands:${NC}"
+                echo "  list     List available models"
+                echo "  set <model>  Switch to specific model"
+                echo "  current  Show current model"
+                ;;
+            *)
+                echo -e "${RED}Unknown model command: $2${NC}"
+                echo -e "${YELLOW}Available model commands:${NC}"
+                echo "  list     List available models"
+                echo "  set <model>  Switch to specific model"
+                echo "  current  Show current model"
+                ;;
+        esac
+        ;;
+    "help"|"-h"|"--help")
+        show_help
+        ;;
+    "")
+        show_help
+        ;;
+    *)
+        echo -e "${RED}Unknown command: $1${NC}"
+        show_help
+        exit 1
+        ;;
+esac
