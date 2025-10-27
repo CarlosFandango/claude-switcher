@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# AI Configuration Switcher - Installation Script
-# Automates the complete setup process
+# Claude Switch - Installation Script
+# Automates the complete setup process for the modular version
 
 set -e  # Exit on any error
 
@@ -14,10 +14,11 @@ NC='\033[0m' # No Color
 
 # Configuration
 INSTALL_DIR="/usr/local/bin"
+LIB_INSTALL_DIR="/usr/local/lib/claude-switch"
 COMMANDS_DIR="$HOME/.claude/commands"
 SCRIPT_NAME="claude-switch"
 
-echo -e "${BLUE}=== AI Configuration Switcher Installation ===${NC}"
+echo -e "${BLUE}=== Claude Switch Installation ===${NC}"
 echo ""
 
 # Check if running as root
@@ -34,75 +35,98 @@ command_exists() {
 
 # Function to check for Claude Code CLI
 check_claude_cli() {
-    echo -e "${YELLOW}Checking for AI CLI...${NC}"
-    
+    echo -e "${YELLOW}Checking for Claude Code CLI...${NC}"
+
     # Check for claude command
     if command_exists claude; then
-        echo -e "${GREEN}✓ AI CLI found${NC}"
+        echo -e "${GREEN}✓ Claude Code CLI found${NC}"
         return 0
     fi
-    
+
     # Check for claude-code command
     if command_exists claude-code; then
-        echo -e "${GREEN}✓ AI CLI found (claude-code)${NC}"
+        echo -e "${GREEN}✓ Claude Code CLI found (claude-code)${NC}"
         return 0
     fi
-    
+
     # Check if ~/.claude directory exists (indicates previous installation)
     if [ -d "$HOME/.claude" ]; then
-        echo -e "${YELLOW}AI CLI configuration directory found, but command not in PATH${NC}"
+        echo -e "${YELLOW}Claude Code configuration directory found, but command not in PATH${NC}"
         echo -e "${YELLOW}You may need to restart your terminal or check your PATH${NC}"
         return 0
     fi
-    
-    # AI CLI not found
-    echo -e "${RED}✗ AI CLI not found${NC}"
+
+    # Claude Code CLI not found
+    echo -e "${RED}✗ Claude Code CLI not found${NC}"
     echo ""
-    echo -e "${YELLOW}This tool requires an AI CLI to be installed first.${NC}"
+    echo -e "${YELLOW}This tool requires Claude Code CLI to be installed first.${NC}"
     echo ""
-    echo -e "${BLUE}To install AI CLI:${NC}"
+    echo -e "${BLUE}To install Claude Code CLI:${NC}"
     echo "1. Visit: https://docs.anthropic.com/en/docs/claude-code/quickstart"
     echo "2. Follow the installation instructions for your platform"
-    echo "3. Run the AI CLI at least once to create initial configuration"
+    echo "3. Run Claude Code at least once to create initial configuration"
     echo "4. Then re-run this installation script"
     echo ""
-    echo -e "${YELLOW}Quick install options:${NC}"
+    echo -e "${YELLOW}Quick install option:${NC}"
     echo "  macOS: curl -fsSL https://claude.ai/install.sh | sh"
-    echo "  Other: See documentation link above"
     echo ""
-    
+
     read -p "Would you like to continue anyway? (y/N): " continue_anyway
     if [[ ! $continue_anyway =~ ^[Yy]$ ]]; then
-        echo "Installation cancelled. Please install AI CLI first."
+        echo "Installation cancelled. Please install Claude Code CLI first."
         exit 1
     fi
-    
-    echo -e "${YELLOW}Continuing without AI CLI verification...${NC}"
+
+    echo -e "${YELLOW}Continuing without Claude Code CLI verification...${NC}"
     # Create claude directory structure manually
     mkdir -p "$COMMANDS_DIR"
+}
+
+# Function to check macOS
+check_macos() {
+    echo -e "${YELLOW}Checking operating system...${NC}"
+
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        echo -e "${GREEN}✓ Running on macOS${NC}"
+
+        # Check for security command (keychain access)
+        if ! command_exists security; then
+            echo -e "${RED}✗ macOS security command not found${NC}"
+            echo "This is unusual for macOS. Keychain integration may not work."
+            exit 1
+        fi
+
+        return 0
+    else
+        echo -e "${RED}✗ This version requires macOS${NC}"
+        echo "Keychain integration is currently macOS-only."
+        echo ""
+        echo "For Linux support, you would need to implement Secret Service integration."
+        exit 1
+    fi
 }
 
 # Function to install dependencies
 install_dependencies() {
     echo -e "${YELLOW}Checking dependencies...${NC}"
-    
+
     local missing_deps=()
-    
+
     if ! command_exists curl; then
         missing_deps+=("curl")
     fi
-    
+
     if ! command_exists jq; then
         missing_deps+=("jq")
     fi
-    
+
     if [ ${#missing_deps[@]} -eq 0 ]; then
         echo -e "${GREEN}✓ All dependencies found${NC}"
         return 0
     fi
-    
+
     echo -e "${YELLOW}Missing dependencies: ${missing_deps[*]}${NC}"
-    
+
     # Detect package manager and install
     if command_exists brew; then
         echo -e "${YELLOW}Installing dependencies via Homebrew...${NC}"
@@ -126,27 +150,84 @@ install_dependencies() {
         done
         exit 1
     fi
-    
+
     echo -e "${GREEN}✓ Dependencies installed${NC}"
+}
+
+# Function to install library modules
+install_lib_modules() {
+    echo -e "${YELLOW}Installing library modules...${NC}"
+
+    if [ ! -d "lib" ]; then
+        echo -e "${RED}Error: lib directory not found in current directory${NC}"
+        echo "Please run this script from the claude-switch repository root"
+        exit 1
+    fi
+
+    # Create lib installation directory
+    echo "Installing libraries to $LIB_INSTALL_DIR (requires sudo)..."
+    sudo mkdir -p "$LIB_INSTALL_DIR"
+
+    # Copy all lib files
+    sudo cp -r lib/* "$LIB_INSTALL_DIR/"
+
+    # Set permissions
+    sudo chmod -R 755 "$LIB_INSTALL_DIR"
+
+    echo -e "${GREEN}✓ Library modules installed${NC}"
 }
 
 # Function to install main script
 install_main_script() {
     echo -e "${YELLOW}Installing main script...${NC}"
-    
+
     if [ ! -f "$SCRIPT_NAME" ]; then
         echo -e "${RED}Error: $SCRIPT_NAME not found in current directory${NC}"
         echo "Please run this script from the directory containing $SCRIPT_NAME"
         exit 1
     fi
-    
+
+    # Create a wrapper script that knows where to find libs
+    local wrapper_script="/tmp/${SCRIPT_NAME}-wrapper"
+
+    cat > "$wrapper_script" << 'EOF'
+#!/bin/bash
+
+# Claude Switch Wrapper - Points to installed library modules
+
+# Get the directory where the script is located
+SCRIPT_DIR="/usr/local/lib/claude-switch"
+LIB_DIR="$SCRIPT_DIR"
+
+# Source all library modules
+source "$LIB_DIR/ui.sh"
+source "$LIB_DIR/config.sh"
+source "$LIB_DIR/validation.sh"
+source "$LIB_DIR/api.sh"
+source "$LIB_DIR/core.sh"
+source "$LIB_DIR/wizard.sh"
+
+# Version
+VERSION="2.0.0"
+
+# Initialize configuration directories
+init_config_dirs
+
+EOF
+
+    # Append the main script logic (skip the shebang and initial sourcing)
+    tail -n +18 "$SCRIPT_NAME" >> "$wrapper_script"
+
     # Make executable
-    chmod +x "$SCRIPT_NAME"
-    
+    chmod +x "$wrapper_script"
+
     # Copy to system path
     echo "Installing to $INSTALL_DIR (requires sudo)..."
-    sudo cp "$SCRIPT_NAME" "$INSTALL_DIR/"
-    
+    sudo cp "$wrapper_script" "$INSTALL_DIR/$SCRIPT_NAME"
+
+    # Clean up temp file
+    rm "$wrapper_script"
+
     # Verify installation
     if command_exists "$SCRIPT_NAME"; then
         echo -e "${GREEN}✓ Main script installed successfully${NC}"
@@ -156,51 +237,49 @@ install_main_script() {
     fi
 }
 
-# Function to install AI CLI integration
-install_ai_integration() {
-    echo -e "${YELLOW}Installing AI CLI integration...${NC}"
-    
+# Function to install Claude Code CLI integration
+install_claude_integration() {
+    echo -e "${YELLOW}Installing Claude Code CLI integration...${NC}"
+
     if [ ! -f "litellm.md" ]; then
-        echo -e "${YELLOW}Warning: litellm.md not found, skipping AI CLI integration${NC}"
+        echo -e "${YELLOW}Warning: litellm.md not found, skipping Claude Code CLI integration${NC}"
         return 0
     fi
-    
+
     # Create commands directory if it doesn't exist
     mkdir -p "$COMMANDS_DIR"
-    
+
     # Copy slash command
     cp "litellm.md" "$COMMANDS_DIR/"
-    
-    echo -e "${GREEN}✓ AI CLI integration installed${NC}"
+
+    echo -e "${GREEN}✓ Claude Code CLI integration installed${NC}"
     echo -e "  Slash command available: ${BLUE}/litellm${NC}"
 }
 
 # Function to run initial setup
 run_initial_setup() {
-    echo -e "${YELLOW}Running initial setup...${NC}"
-    
+    echo -e "${YELLOW}Testing installation...${NC}"
+
     # Test basic functionality
-    echo "Testing installation..."
-    if ! "$SCRIPT_NAME" help >/dev/null 2>&1; then
+    if ! "$SCRIPT_NAME" version >/dev/null 2>&1; then
         echo -e "${RED}✗ Installation test failed${NC}"
         exit 1
     fi
-    
+
     echo -e "${GREEN}✓ Installation test passed${NC}"
-    
+
     # Prompt for configuration setup
     echo ""
-    echo -e "${BLUE}Configuration Setup${NC}"
-    echo "Would you like to set up your work profile now? (y/N)"
-    read -r setup_work
-    
-    if [[ $setup_work =~ ^[Yy]$ ]]; then
-        echo -e "${YELLOW}Setting up work profile...${NC}"
-        "$SCRIPT_NAME" work
+    echo -e "${BLUE}Initial Configuration${NC}"
+    echo "Would you like to run the setup wizard now? (Y/n)"
+    read -r run_setup
+
+    if [[ ! $run_setup =~ ^[Nn]$ ]]; then
+        echo ""
+        "$SCRIPT_NAME" setup
     else
-        echo -e "${YELLOW}You can set up profiles later using:${NC}"
-        echo "  $SCRIPT_NAME work    # Set up work/LiteLLM profile"
-        echo "  $SCRIPT_NAME personal # Switch to personal profile"
+        echo -e "${YELLOW}You can run the setup wizard later using:${NC}"
+        echo "  $SCRIPT_NAME setup"
     fi
 }
 
@@ -210,26 +289,34 @@ show_completion() {
     echo -e "${GREEN}=== Installation Complete! ===${NC}"
     echo ""
     echo -e "${BLUE}Quick Start:${NC}"
+    echo "  $SCRIPT_NAME setup          # Run interactive setup wizard"
     echo "  $SCRIPT_NAME help           # Show all commands"
     echo "  $SCRIPT_NAME status         # Check current configuration"
-    echo "  $SCRIPT_NAME work           # Switch to work profile"
+    echo "  $SCRIPT_NAME list           # List all profiles"
     echo "  $SCRIPT_NAME model list     # List available models"
     echo ""
-    echo -e "${BLUE}AI CLI Integration:${NC}"
-    echo "  /litellm list              # List models in AI CLI"
-    echo "  /litellm set <model>       # Switch model in AI CLI"
+    echo -e "${BLUE}Profile Management:${NC}"
+    echo "  $SCRIPT_NAME create         # Create a new profile"
+    echo "  $SCRIPT_NAME switch <name>  # Switch to a profile"
+    echo "  $SCRIPT_NAME delete <name>  # Delete a profile"
+    echo ""
+    echo -e "${BLUE}Claude Code CLI Integration:${NC}"
+    echo "  /litellm                    # Access from Claude Code CLI"
     echo ""
     echo -e "${YELLOW}For detailed documentation, see README.md${NC}"
 }
 
 # Main installation flow
 main() {
-    # Check for AI CLI first
+    # Check for macOS
+    check_macos
+
+    # Check for Claude Code CLI
     check_claude_cli
-    
+
     # Check if already installed
-    if command_exists "$SCRIPT_NAME" && [ -f "$COMMANDS_DIR/litellm.md" ]; then
-        echo -e "${YELLOW}AI Configuration Switcher appears to already be installed.${NC}"
+    if command_exists "$SCRIPT_NAME"; then
+        echo -e "${YELLOW}Claude Switch appears to already be installed.${NC}"
         echo "Would you like to reinstall/update? (y/N)"
         read -r reinstall
         if [[ ! $reinstall =~ ^[Yy]$ ]]; then
@@ -237,10 +324,11 @@ main() {
             exit 0
         fi
     fi
-    
+
     install_dependencies
+    install_lib_modules
     install_main_script
-    install_ai_integration
+    install_claude_integration
     run_initial_setup
     show_completion
 }
