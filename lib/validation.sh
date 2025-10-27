@@ -228,9 +228,11 @@ validate_profile_config() {
         return 5
     fi
 
-    # Validate model exists
-    if ! validate_model_exists "$model" "$api_key" "$base_url"; then
-        return 6
+    # Validate model exists (skip for Anthropic direct API)
+    if [[ "$base_url" != *"api.anthropic.com"* ]]; then
+        if ! validate_model_exists "$model" "$api_key" "$base_url"; then
+            return 6
+        fi
     fi
 
     return 0
