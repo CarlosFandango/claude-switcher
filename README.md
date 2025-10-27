@@ -14,6 +14,7 @@ Claude Switch lets you seamlessly manage multiple Claude API configurations with
 - **🔄 Easy Switching**: Switch between profiles with a single command
 - **🏥 Health Checks**: Built-in diagnostics with `doctor` command
 - **🎯 Model Management**: List and switch between available LiteLLM models
+- **💻 Shell Integration**: Display active profile in your ZSH/Bash prompt
 
 ## Requirements
 
@@ -193,6 +194,28 @@ claude-switch version
 # Show help
 claude-switch help
 ```
+
+### Shell Prompt Integration
+
+Display your active profile directly in your shell prompt! See [SHELL_INTEGRATION.md](SHELL_INTEGRATION.md) for detailed setup instructions for:
+
+- **Starship** (recommended)
+- **Oh My Zsh**
+- **Powerlevel10k**
+- **Custom ZSH/Bash prompts**
+
+Quick example for ZSH:
+```bash
+# Add to ~/.zshrc
+claude_prompt() {
+    if [ -f "$HOME/.claude/active-profile" ]; then
+        echo "%F{cyan}󰧑 $(cat $HOME/.claude/active-profile)%f "
+    fi
+}
+RPROMPT='$(claude_prompt)'
+```
+
+Result: Your prompt will show `󰧑 work` or `󰧑 personal` based on active profile.
 
 ### Claude Code CLI Integration
 
