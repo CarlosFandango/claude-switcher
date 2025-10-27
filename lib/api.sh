@@ -1,24 +1,42 @@
 #!/bin/bash
 # LiteLLM API Interaction Functions
 
-# Fetch available models from LiteLLM endpoint
+# Fetch available models from API endpoint
 fetch_models() {
     local api_key="$1"
     local base_url="$2"
     local timeout="${3:-10}"
 
-    local response
-    response=$(curl -s -m "$timeout" \
+    local response http_code
+
+    # Try x-api-key header first (works for both LiteLLM and Anthropic)
+    response=$(curl -s -w "\n%{http_code}" -m "$timeout" \
         -H "x-api-key: $api_key" \
         -H "Content-Type: application/json" \
         "${base_url}/v1/models" 2>/dev/null)
 
+    http_code=$(echo "$response" | tail -n 1)
+
+    # If x-api-key failed with 401/403, try Authorization Bearer
+    if [[ "$http_code" =~ ^(401|403)$ ]]; then
+        response=$(curl -s -w "\n%{http_code}" -m "$timeout" \
+            -H "Authorization: Bearer $api_key" \
+            -H "Content-Type: application/json" \
+            "${base_url}/v1/models" 2>/dev/null)
+
+        http_code=$(echo "$response" | tail -n 1)
+    fi
+
+    # Remove HTTP code from response
+    local body
+    body=$(echo "$response" | sed '$d')
+
     # Check if response is valid JSON
-    if ! echo "$response" | jq -e '.data' > /dev/null 2>&1; then
+    if ! echo "$body" | jq -e '.data' > /dev/null 2>&1; then
         return 1
     fi
 
-    echo "$response"
+    echo "$body"
 }
 
 # Get list of model IDs

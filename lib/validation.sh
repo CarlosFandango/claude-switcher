@@ -84,6 +84,7 @@ validate_api_key_live() {
     # Make a test request to /v1/models endpoint
     local response http_code body
 
+    # Try x-api-key header first (works for both LiteLLM and Anthropic)
     response=$(curl -s -w "\n%{http_code}" -m "$timeout" \
         -H "x-api-key: $api_key" \
         -H "Content-Type: application/json" \
@@ -91,6 +92,16 @@ validate_api_key_live() {
 
     # Extract HTTP code (last line)
     http_code=$(echo "$response" | tail -n 1)
+
+    # If x-api-key failed with 401/403, try Authorization Bearer
+    if [[ "$http_code" =~ ^(401|403)$ ]]; then
+        response=$(curl -s -w "\n%{http_code}" -m "$timeout" \
+            -H "Authorization: Bearer $api_key" \
+            -H "Content-Type: application/json" \
+            "${base_url}/v1/models" 2>/dev/null)
+
+        http_code=$(echo "$response" | tail -n 1)
+    fi
 
     # Extract body (all but last line) - compatible with macOS
     body=$(echo "$response" | sed '$d')
@@ -115,15 +126,29 @@ validate_model_exists() {
     local base_url="$3"
     local timeout="${4:-5}"
 
-    # Get available models
-    local response
-    response=$(curl -s -m "$timeout" \
+    # Get available models - try x-api-key first
+    local response http_code
+    response=$(curl -s -w "\n%{http_code}" -m "$timeout" \
         -H "x-api-key: $api_key" \
         -H "Content-Type: application/json" \
         "${base_url}/v1/models" 2>/dev/null)
 
+    http_code=$(echo "$response" | tail -n 1)
+
+    # If x-api-key failed, try Authorization Bearer
+    if [[ "$http_code" =~ ^(401|403)$ ]]; then
+        response=$(curl -s -w "\n%{http_code}" -m "$timeout" \
+            -H "Authorization: Bearer $api_key" \
+            -H "Content-Type: application/json" \
+            "${base_url}/v1/models" 2>/dev/null)
+    fi
+
+    # Remove HTTP code
+    local body
+    body=$(echo "$response" | sed '$d')
+
     # Check if model exists in the list
-    if echo "$response" | jq -e --arg model "$model" '.data[] | select(.id == $model)' > /dev/null 2>&1; then
+    if echo "$body" | jq -e --arg model "$model" '.data[] | select(.id == $model)' > /dev/null 2>&1; then
         return 0
     fi
 
