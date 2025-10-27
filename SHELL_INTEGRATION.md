@@ -4,7 +4,59 @@ Display your active Claude profile in your shell prompt!
 
 ## ZSH Integration
 
-### Option 1: Starship Prompt (Recommended)
+### Option 1: Spaceship Prompt
+
+If you use [Spaceship Prompt](https://spaceship-prompt.sh/), this is the recommended integration:
+
+**Step 1:** Create a custom section file:
+
+```bash
+# Create the file
+cat > ~/.oh-my-zsh/custom/claude_profile.zsh << 'EOF'
+# Claude Switch profile section for Spaceship prompt
+
+spaceship_claude_profile() {
+  # If not in a Spaceship prompt, return
+  [[ $SPACESHIP_VERSION ]] || return
+
+  local profile_file="$HOME/.claude/active-profile"
+
+  # Check if profile exists
+  [[ -f "$profile_file" ]] || return
+
+  local profile=$(cat "$profile_file")
+
+  # Display the profile
+  spaceship::section \
+    --color cyan \
+    --prefix '' \
+    --suffix ' ' \
+    --symbol '󰧑 ' \
+    "$profile"
+}
+EOF
+```
+
+**Step 2:** Add to your `~/.zshrc` (before Oh My Zsh is loaded):
+
+```bash
+# Spaceship prompt configuration - add claude_profile to right prompt
+SPACESHIP_RPROMPT_ORDER=(
+  claude_profile  # Claude Switch profile
+  time            # Time stamps section
+  exec_time       # Execution time
+)
+```
+
+**Step 3:** Reload your shell:
+
+```bash
+exec zsh
+```
+
+Your prompt will now show `󰧑 work` or `󰧑 personal` on the right side!
+
+### Option 2: Starship Prompt
 
 If you use [Starship](https://starship.rs/), add this to your `~/.config/starship.toml`:
 
@@ -17,7 +69,7 @@ symbol = "󰧑 "
 style = "cyan"
 ```
 
-### Option 2: Oh My Zsh Theme
+### Option 3: Oh My Zsh Theme
 
 Add to your `~/.zshrc` (before loading Oh My Zsh):
 
@@ -37,7 +89,7 @@ RPROMPT='$(claude_prompt)'
 # RPROMPT='$(claude_prompt)${RPROMPT}'
 ```
 
-### Option 3: Custom ZSH Prompt
+### Option 4: Custom ZSH Prompt
 
 Add to your `~/.zshrc`:
 
@@ -55,7 +107,7 @@ PROMPT='%F{green}%n@%m%f %F{blue}%~%f $(claude_prompt)
 %# '
 ```
 
-### Option 4: Using Powerlevel10k
+### Option 5: Using Powerlevel10k
 
 If you use Powerlevel10k, add to your `~/.p10k.zsh`:
 
