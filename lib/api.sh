@@ -7,9 +7,17 @@ fetch_models() {
     local base_url="$2"
     local timeout="${3:-10}"
 
+    # Check if this is Anthropic's direct API
+    if [[ "$base_url" == *"api.anthropic.com"* ]]; then
+        # Anthropic API doesn't have /v1/models endpoint
+        # Model selection is handled by Claude Code directly
+        return 1
+    fi
+
+    # For LiteLLM and other proxies, fetch from /v1/models endpoint
     local response http_code
 
-    # Try x-api-key header first (works for both LiteLLM and Anthropic)
+    # Try x-api-key header first
     response=$(curl -s -w "\n%{http_code}" -m "$timeout" \
         -H "x-api-key: $api_key" \
         -H "Content-Type: application/json" \

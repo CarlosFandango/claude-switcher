@@ -81,10 +81,17 @@ validate_api_key_live() {
     local base_url="$2"
     local timeout="${3:-5}"
 
-    # Make a test request to /v1/models endpoint
+    # Check if this is Anthropic's direct API
+    if [[ "$base_url" == *"api.anthropic.com"* ]]; then
+        # Anthropic doesn't have /v1/models endpoint, just validate key format
+        # The key will be validated when actually used
+        return 0
+    fi
+
+    # For LiteLLM and other proxies, test /v1/models endpoint
     local response http_code body
 
-    # Try x-api-key header first (works for both LiteLLM and Anthropic)
+    # Try x-api-key header first
     response=$(curl -s -w "\n%{http_code}" -m "$timeout" \
         -H "x-api-key: $api_key" \
         -H "Content-Type: application/json" \

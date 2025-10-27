@@ -143,24 +143,31 @@ create_profile_interactive() {
     done
 
     # Step 5: Select model
-    print_info "Fetching available models..."
-
     local model
-    local models
-    models=$(get_model_ids "$api_key" "$base_url" 2>/dev/null)
 
-    if [ -n "$models" ] && [ "$(echo "$models" | wc -l)" -gt 0 ]; then
-        print_success "Found $(echo "$models" | wc -l) available models"
-        echo ""
+    # Check if this is Anthropic's direct API
+    if [[ "$base_url" == *"api.anthropic.com"* ]]; then
+        print_info "Anthropic API detected - model selection handled by Claude Code"
+        model="claude-sonnet-4-20250514"  # Default, but Claude Code will manage actual model
+    else
+        print_info "Fetching available models..."
 
-        model=$(select_model_interactive "$api_key" "$base_url")
-        if [ $? -ne 0 ]; then
-            print_warning "Failed to select model interactively"
+        local models
+        models=$(get_model_ids "$api_key" "$base_url" 2>/dev/null)
+
+        if [ -n "$models" ] && [ "$(echo "$models" | wc -l)" -gt 0 ]; then
+            print_success "Found $(echo "$models" | wc -l) available models"
+            echo ""
+
+            model=$(select_model_interactive "$api_key" "$base_url")
+            if [ $? -ne 0 ]; then
+                print_warning "Failed to select model interactively"
+                model=$(prompt_input "Enter model name manually" "claude-sonnet-4-20250514")
+            fi
+        else
+            print_warning "Could not fetch models from API"
             model=$(prompt_input "Enter model name manually" "claude-sonnet-4-20250514")
         fi
-    else
-        print_warning "Could not fetch models from API"
-        model=$(prompt_input "Enter model name manually" "claude-sonnet-4-20250514")
     fi
 
     # Step 6: Confirm and create
