@@ -189,8 +189,22 @@ apply_profile() {
     small_model=$(jq -r '.small_model' "$config_file")
     region=$(jq -r '.region // "us-east5"' "$config_file")
 
-    # Create settings.json
-    cat > "$SETTINGS_FILE" << EOF
+    # Check if this is Anthropic's direct API
+    if [[ "$base_url" == *"api.anthropic.com"* ]]; then
+        # For Anthropic direct API, omit ANTHROPIC_MODEL to use Claude Code's default
+        cat > "$SETTINGS_FILE" << EOF
+{
+  "env": {
+    "ANTHROPIC_AUTH_TOKEN": "$api_key",
+    "CLAUDE_CODE_ENABLE_TELEMETRY": "0",
+    "ANTHROPIC_BASE_URL": "$base_url",
+    "CLOUD_ML_REGION": "$region"
+  }
+}
+EOF
+    else
+        # For LiteLLM and other proxies, include model configuration
+        cat > "$SETTINGS_FILE" << EOF
 {
   "env": {
     "ANTHROPIC_AUTH_TOKEN": "$api_key",
@@ -202,6 +216,7 @@ apply_profile() {
   }
 }
 EOF
+    fi
 
     # Update last used timestamp
     update_last_used "$profile_name"
