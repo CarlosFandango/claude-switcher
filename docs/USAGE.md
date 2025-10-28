@@ -102,7 +102,26 @@ claude-switch delete <profile-name>
 
 ## Model Management
 
-**Note:** Model management is only available for LiteLLM profiles. Anthropic direct API profiles use Claude Code's default model selection.
+**Note:** Model management is only available for LiteLLM and custom proxy profiles. Managed services (Anthropic, Vertex AI, AWS Bedrock) handle model selection internally.
+
+### Switch Models
+
+```bash
+# Interactive menu (arrow-key navigation)
+claude-switch model
+
+# Or switch directly by name
+claude-switch model <model-name>
+
+# Example
+claude-switch model claude-sonnet-4-20250514
+```
+
+**Interactive Menu Features:**
+- Use ↑/↓ arrow keys or j/k to navigate
+- Press Enter to select
+- Press 'q' to cancel
+- Current model is marked with "(current)"
 
 ### List Available Models
 
@@ -116,16 +135,6 @@ claude-switch model list
 ```bash
 # Display active model configuration
 claude-switch model current
-```
-
-### Switch Models
-
-```bash
-# Change to a different model
-claude-switch model set <model-name>
-
-# Example
-claude-switch model set claude-sonnet-4-20250514
 ```
 
 ## Diagnostics
@@ -200,14 +209,17 @@ claude-switch switch personal  # Personal projects
 claude-switch switch work
 
 # Test different models
-claude-switch model set claude-sonnet-4-20250514
+claude-switch model claude-sonnet-4-20250514
 # ... test ...
 
-claude-switch model set claude-3-5-haiku-20241022
+claude-switch model claude-3-5-haiku-20241022
 # ... test faster model ...
 
-claude-switch model set claude-opus-4-20250514
+claude-switch model claude-opus-4-20250514
 # ... test most powerful model ...
+
+# Or use interactive menu
+claude-switch model
 ```
 
 ## Configuration Files

@@ -39,8 +39,9 @@ Commands:
   delete <name>            Delete a profile
   rename <old> <new>       Rename a profile
 
-  model list               List available models from LiteLLM
-  model set <model>        Update model for current profile
+  model                    Interactive model selection menu
+  model <name>             Switch to specific model
+  model list               List available models
   model current            Show current model
 
   doctor                   Run diagnostics and health checks
@@ -292,8 +293,7 @@ run_doctor() {
 
 # Handle model commands
 handle_model_command() {
-    local subcommand="$1"
-    shift
+    local arg="$1"
 
     local active
     active=$(get_active_profile)
@@ -312,7 +312,18 @@ handle_model_command() {
 
     base_url=$(get_config_value "$active" "base_url")
 
-    case "$subcommand" in
+    # Check if this is a managed service (Anthropic, Vertex AI, Bedrock)
+    if [[ "$base_url" == *"api.anthropic.com"* ]] || \
+       [[ "$base_url" == *"aiplatform.googleapis.com"* ]] || \
+       [[ "$base_url" == *"bedrock-runtime"* ]]; then
+        print_warning "Model selection is managed by the service for this profile"
+        print_info "Profile: $active"
+        print_info "Endpoint: $base_url"
+        return 0
+    fi
+
+    # Handle subcommands for backwards compatibility
+    case "$arg" in
         list)
             print_header "Available Models"
 
@@ -342,13 +353,55 @@ handle_model_command() {
             print_info "Current model: $model"
             ;;
 
-        set)
-            local new_model="$1"
+        "")
+            # No argument - show interactive menu
+            local models
+            models=$(get_model_ids "$api_key" "$base_url")
 
-            if [ -z "$new_model" ]; then
-                print_error "Model name required. Usage: claude-switch model set <model>"
+            if [ $? -ne 0 ] || [ -z "$models" ]; then
+                print_error "Failed to fetch models from API"
                 return 1
             fi
+
+            # Convert to array with current model marked
+            local current_model
+            current_model=$(get_config_value "$active" "model")
+
+            local model_array=()
+            while IFS= read -r model; do
+                if [ -n "$model" ]; then
+                    if [ "$model" = "$current_model" ]; then
+                        model_array+=("$model (current)")
+                    else
+                        model_array+=("$model")
+                    fi
+                fi
+            done <<< "$models"
+
+            # Show interactive menu
+            local selected_model
+            selected_model=$(select_from_menu "Select model to switch to:" "${model_array[@]}")
+
+            if [ $? -ne 0 ] || [ -z "$selected_model" ]; then
+                print_info "Model selection cancelled"
+                return 0
+            fi
+
+            # Remove " (current)" suffix if present
+            selected_model="${selected_model% (current)}"
+
+            # Update model
+            if update_profile_model "$active" "$selected_model"; then
+                print_success "Model updated to: $selected_model"
+            else
+                print_error "Failed to update model"
+                return 1
+            fi
+            ;;
+
+        *)
+            # Direct model name provided
+            local new_model="$arg"
 
             print_info "Validating model..."
 
@@ -367,12 +420,6 @@ handle_model_command() {
                 print_error "Failed to update model"
                 return 1
             fi
-            ;;
-
-        *)
-            print_error "Unknown model subcommand: $subcommand"
-            print_info "Available subcommands: list, current, set"
-            return 1
             ;;
     esac
 }
