@@ -68,6 +68,9 @@ claude-switch switch          # Interactive menu to switch profiles
 claude-switch switch <name>   # Switch to specific profile
 claude-switch list            # List all profiles
 claude-switch status          # Show active profile
+claude-switch model           # Interactive menu to switch models
+claude-switch model <name>    # Switch to specific model
+claude-switch model list      # List available models
 claude-switch delete          # Interactive menu to delete profile
 claude-switch delete <name>   # Delete specific profile
 claude-switch doctor          # Run diagnostics
