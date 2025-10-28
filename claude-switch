@@ -44,6 +44,7 @@ Commands:
   model current            Show current model
 
   doctor                   Run diagnostics and health checks
+  uninstall                Uninstall claude-switch from your system
   version                  Show version information
   help                     Show this help message
 
@@ -554,6 +555,27 @@ main() {
 
         doctor)
             run_doctor
+            ;;
+
+        uninstall)
+            # Run the uninstall script
+            local script_dir
+            script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+            if [ -f "$script_dir/uninstall.sh" ]; then
+                bash "$script_dir/uninstall.sh"
+            elif [ -f "/usr/local/lib/claude-switch/uninstall.sh" ]; then
+                bash "/usr/local/lib/claude-switch/uninstall.sh"
+            else
+                print_error "Uninstall script not found"
+                echo ""
+                print_info "To manually uninstall:"
+                echo "  sudo rm /usr/local/bin/claude-switch"
+                echo "  sudo rm -rf /usr/local/lib/claude-switch"
+                echo "  rm -rf ~/.claude/profiles"
+                echo "  rm ~/.claude/settings.json"
+                return 1
+            fi
             ;;
 
         version)

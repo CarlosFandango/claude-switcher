@@ -171,6 +171,12 @@ install_lib_modules() {
     # Copy all lib files
     sudo cp -r lib/* "$LIB_INSTALL_DIR/"
 
+    # Copy uninstall script
+    if [ -f "uninstall.sh" ]; then
+        sudo cp uninstall.sh "$LIB_INSTALL_DIR/"
+        sudo chmod 755 "$LIB_INSTALL_DIR/uninstall.sh"
+    fi
+
     # Set permissions
     sudo chmod -R 755 "$LIB_INSTALL_DIR"
 
