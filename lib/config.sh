@@ -189,9 +189,12 @@ apply_profile() {
     small_model=$(jq -r '.small_model' "$config_file")
     region=$(jq -r '.region // "us-east5"' "$config_file")
 
-    # Check if this is Anthropic's direct API
-    if [[ "$base_url" == *"api.anthropic.com"* ]]; then
-        # For Anthropic direct API, omit ANTHROPIC_MODEL to use Claude Code's default
+    # Check if this is Anthropic's direct API, Vertex AI, or AWS Bedrock
+    # These services manage model selection internally
+    if [[ "$base_url" == *"api.anthropic.com"* ]] || \
+       [[ "$base_url" == *"aiplatform.googleapis.com"* ]] || \
+       [[ "$base_url" == *"bedrock-runtime"* ]]; then
+        # Omit ANTHROPIC_MODEL to use Claude Code's default or service-managed model
         cat > "$SETTINGS_FILE" << EOF
 {
   "env": {

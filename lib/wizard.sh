@@ -84,30 +84,73 @@ create_profile_interactive() {
     local description
     description=$(prompt_input "Enter profile description (optional)" "")
 
-    # Step 3: LiteLLM base URL
+    # Step 3: Select API provider
+    echo ""
+    print_info "Select your API provider:"
+
+    local provider_options=(
+        "Anthropic (Direct API)"
+        "Google Vertex AI"
+        "AWS Bedrock"
+        "Custom/Other (LiteLLM, self-hosted, etc.)"
+    )
+
+    local provider_choice
+    provider_choice=$(select_from_menu "Select API provider:" "${provider_options[@]}")
+
+    if [ $? -ne 0 ] || [ -z "$provider_choice" ]; then
+        print_error "Provider selection cancelled"
+        return 1
+    fi
+
+    # Step 3b: Set base URL based on provider
     local base_url
-    while true; do
-        base_url=$(prompt_input "Enter LiteLLM base URL" "https://litellm.example.com")
+    case "$provider_choice" in
+        "Anthropic (Direct API)")
+            base_url="https://api.anthropic.com"
+            print_success "Using Anthropic Direct API: $base_url"
+            ;;
 
-        if ! validate_url "$base_url"; then
-            print_warning "Invalid URL format. Must start with http:// or https://"
-            continue
-        fi
+        "Google Vertex AI")
+            local region
+            region=$(prompt_input "Enter Vertex AI region (e.g., us-east5, europe-west1)" "us-east5")
+            base_url="https://${region}-aiplatform.googleapis.com"
+            print_success "Using Vertex AI: $base_url"
+            ;;
 
-        # Test connectivity
-        print_info "Testing connection to $base_url..."
-        if test_api_connection "$base_url" 5; then
-            print_success "Connection successful"
-            break
-        else
-            print_error "Cannot connect to $base_url"
-            if prompt_confirm "Do you want to try a different URL?"; then
-                continue
-            else
-                break
-            fi
-        fi
-    done
+        "AWS Bedrock")
+            local region
+            region=$(prompt_input "Enter AWS region (e.g., us-east-1, us-west-2)" "us-east-1")
+            base_url="https://bedrock-runtime.${region}.amazonaws.com"
+            print_success "Using AWS Bedrock: $base_url"
+            ;;
+
+        "Custom/Other (LiteLLM, self-hosted, etc.)")
+            while true; do
+                base_url=$(prompt_input "Enter custom base URL" "https://litellm.company.com")
+
+                if ! validate_url "$base_url"; then
+                    print_warning "Invalid URL format. Must start with http:// or https://"
+                    continue
+                fi
+
+                # Test connectivity for custom URLs
+                print_info "Testing connection to $base_url..."
+                if test_api_connection "$base_url" 5; then
+                    print_success "Connection successful"
+                    break
+                else
+                    print_error "Cannot connect to $base_url"
+                    if prompt_confirm "Do you want to try a different URL?"; then
+                        continue
+                    else
+                        print_warning "Proceeding without connectivity test"
+                        break
+                    fi
+                fi
+            done
+            ;;
+    esac
 
     # Step 4: API key
     local api_key
@@ -145,11 +188,22 @@ create_profile_interactive() {
     # Step 5: Select model
     local model
 
-    # Check if this is Anthropic's direct API
-    if [[ "$base_url" == *"api.anthropic.com"* ]]; then
-        print_info "Anthropic API detected - model selection handled by Claude Code"
-        model="claude-sonnet-4-20250514"  # Default, but Claude Code will manage actual model
+    # Check if this is a service that manages model selection internally
+    if [[ "$base_url" == *"api.anthropic.com"* ]] || \
+       [[ "$base_url" == *"aiplatform.googleapis.com"* ]] || \
+       [[ "$base_url" == *"bedrock-runtime"* ]]; then
+
+        if [[ "$base_url" == *"api.anthropic.com"* ]]; then
+            print_info "Anthropic API detected - model selection handled by Claude Code"
+        elif [[ "$base_url" == *"aiplatform.googleapis.com"* ]]; then
+            print_info "Google Vertex AI detected - model selection handled by Vertex AI"
+        elif [[ "$base_url" == *"bedrock-runtime"* ]]; then
+            print_info "AWS Bedrock detected - model selection handled by Bedrock"
+        fi
+
+        model="claude-sonnet-4-20250514"  # Placeholder - service will manage actual model
     else
+        # For LiteLLM and custom proxies, fetch and select model
         print_info "Fetching available models..."
 
         local models

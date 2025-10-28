@@ -81,9 +81,12 @@ validate_api_key_live() {
     local base_url="$2"
     local timeout="${3:-5}"
 
-    # Check if this is Anthropic's direct API
-    if [[ "$base_url" == *"api.anthropic.com"* ]]; then
-        # Anthropic doesn't have /v1/models endpoint, just validate key format
+    # Check if this is Anthropic's direct API, Vertex AI, or AWS Bedrock
+    # These don't have /v1/models endpoint like LiteLLM
+    if [[ "$base_url" == *"api.anthropic.com"* ]] || \
+       [[ "$base_url" == *"aiplatform.googleapis.com"* ]] || \
+       [[ "$base_url" == *"bedrock-runtime"* ]]; then
+        # These services don't have /v1/models endpoint
         # The key will be validated when actually used
         return 0
     fi
@@ -228,8 +231,10 @@ validate_profile_config() {
         return 5
     fi
 
-    # Validate model exists (skip for Anthropic direct API)
-    if [[ "$base_url" != *"api.anthropic.com"* ]]; then
+    # Validate model exists (skip for Anthropic, Vertex AI, AWS Bedrock)
+    if [[ "$base_url" != *"api.anthropic.com"* ]] && \
+       [[ "$base_url" != *"aiplatform.googleapis.com"* ]] && \
+       [[ "$base_url" != *"bedrock-runtime"* ]]; then
         if ! validate_model_exists "$model" "$api_key" "$base_url"; then
             return 6
         fi
