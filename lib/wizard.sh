@@ -201,7 +201,7 @@ create_profile_interactive() {
             print_info "AWS Bedrock detected - model selection handled by Bedrock"
         fi
 
-        model="claude-sonnet-4-20250514"  # Placeholder - service will manage actual model
+        model="default"  # Placeholder - service will manage actual model
     else
         # For LiteLLM and custom proxies, fetch and select model
         print_info "Fetching available models..."
