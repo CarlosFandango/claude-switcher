@@ -59,7 +59,6 @@ fi
 print_info "The following will be removed:"
 echo "  - /usr/local/bin/claude-switch"
 echo "  - /usr/local/lib/claude-switch/"
-echo "  - ~/.claude/litellm.md (slash command)"
 echo ""
 
 # Ask about user data
@@ -116,13 +115,6 @@ if [ -d "/usr/local/lib/claude-switch" ]; then
     print_info "Removing library files..."
     sudo rm -rf /usr/local/lib/claude-switch
     print_success "Library files removed"
-fi
-
-# Remove slash command
-if [ -f "$HOME/.claude/litellm.md" ]; then
-    print_info "Removing slash command..."
-    rm -f "$HOME/.claude/litellm.md"
-    print_success "Slash command removed"
 fi
 
 # Remove user data if requested

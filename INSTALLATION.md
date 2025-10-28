@@ -71,20 +71,7 @@ sudo cp claude-switch /usr/local/bin/
 claude-switch help
 ```
 
-### Step 3: Install AI CLI Integration
-
-```bash
-# Create commands directory if it doesn't exist
-mkdir -p ~/.claude/commands/
-
-# Copy the slash command
-cp litellm.md ~/.claude/commands/
-
-# Verify installation by starting your AI CLI and typing:
-# /litellm
-```
-
-### Step 4: Initial Setup
+### Step 3: Initial Setup
 
 #### Personal Configuration
 If you already have an AI configuration, it will be automatically backed up as your "personal" profile on first use.
@@ -138,11 +125,11 @@ sudo yum install jq
 ## Uninstallation
 
 ```bash
-# Remove main script
-sudo rm /usr/local/bin/claude-switch
+# Use the built-in uninstall command
+claude-switch uninstall
 
-# Remove slash command (optional)
-rm ~/.claude/commands/litellm.md
+# Or manually remove
+sudo rm /usr/local/bin/claude-switch
 
 # Remove configuration profiles (optional)
 rm -rf ~/.claude/profiles

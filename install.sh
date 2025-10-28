@@ -243,25 +243,6 @@ EOF
     fi
 }
 
-# Function to install Claude Code CLI integration
-install_claude_integration() {
-    echo -e "${YELLOW}Installing Claude Code CLI integration...${NC}"
-
-    if [ ! -f "litellm.md" ]; then
-        echo -e "${YELLOW}Warning: litellm.md not found, skipping Claude Code CLI integration${NC}"
-        return 0
-    fi
-
-    # Create commands directory if it doesn't exist
-    mkdir -p "$COMMANDS_DIR"
-
-    # Copy slash command
-    cp "litellm.md" "$COMMANDS_DIR/"
-
-    echo -e "${GREEN}✓ Claude Code CLI integration installed${NC}"
-    echo -e "  Slash command available: ${BLUE}/litellm${NC}"
-}
-
 # Function to run initial setup
 run_initial_setup() {
     echo -e "${YELLOW}Testing installation...${NC}"
@@ -334,7 +315,6 @@ main() {
     install_dependencies
     install_lib_modules
     install_main_script
-    install_claude_integration
     run_initial_setup
     show_completion
 }

@@ -287,23 +287,6 @@ security delete-generic-password -s com.claude-switch.<profile> -a api-key
 
 First access to each profile's keychain entry prompts for permission. Click **"Always Allow"** to avoid repeated prompts.
 
-## Claude Code CLI Integration
-
-From within Claude Code, use the `/litellm` slash command:
-
-```bash
-# List available models
-/litellm list
-
-# Set model
-/litellm set <model-name>
-
-# Show current model
-/litellm current
-```
-
-This provides in-session model switching without leaving Claude Code.
-
 ---
 
 **See also:**
