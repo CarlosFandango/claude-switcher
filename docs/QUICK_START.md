@@ -47,15 +47,22 @@ Enter:
 ## Switch Between Profiles
 
 ```bash
-# Switch to work profile
-claude-switch switch work
+# Interactive menu (use arrow keys to select)
+claude-switch switch
 
-# Switch to personal profile
+# Or switch directly by name
+claude-switch switch work
 claude-switch switch personal
 
 # Check which profile is active
 claude-switch status
 ```
+
+**Interactive Menu:**
+- Use ↑/↓ arrow keys (or j/k) to navigate
+- Press Enter to select
+- Press 'q' to cancel
+- Active profile marked with "(active)"
 
 **Important:** Restart Claude Code or start a new session after switching.
 

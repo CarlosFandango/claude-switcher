@@ -20,12 +20,24 @@ claude-switch setup
 ### Switch Profiles
 
 ```bash
+# Interactive menu (arrow-key navigation)
+claude-switch switch
+
 # Switch with validation (recommended)
 claude-switch switch <profile-name>
 
 # Switch without validation (faster, skip API checks)
 claude-switch switch <profile-name> --skip-validation
+
+# Interactive menu with skip validation
+claude-switch switch --skip-validation
 ```
+
+**Interactive Menu Features:**
+- Use ↑/↓ arrow keys or j/k to navigate
+- Press Enter to select
+- Press 'q' to cancel
+- Active profile is marked with "(active)"
 
 **Note:** Restart Claude Code or start a new session after switching.
 
@@ -68,10 +80,21 @@ Renames profile directory, updates keychain entries, and preserves active status
 ### Delete a Profile
 
 ```bash
+# Interactive menu (arrow-key navigation)
+claude-switch delete
+
+# Delete specific profile directly
 claude-switch delete <profile-name>
 ```
 
-Removes:
+**Interactive Menu Features:**
+- Use ↑/↓ arrow keys or j/k to navigate
+- Press Enter to select
+- Press 'q' to cancel
+- Active profile is marked with "(active)"
+- Confirmation prompt before deletion
+
+**What gets removed:**
 - Profile configuration files
 - Keychain entry (API key)
 - Metadata

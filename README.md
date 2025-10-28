@@ -5,10 +5,11 @@
 Easily switch between multiple Claude API configurations (work, personal, different environments) with secure API key storage and live validation.
 
 ```bash
-# Switch to work profile (LiteLLM)
-claude-switch switch work
+# Interactive menu - just run switch without arguments
+claude-switch switch
 
-# Switch to personal profile (Anthropic)
+# Or switch directly by name
+claude-switch switch work
 claude-switch switch personal
 
 # Check status
@@ -20,6 +21,7 @@ claude-switch status
 - 🔐 **Secure Storage** - API keys in macOS Keychain, never on disk
 - 🚀 **Multiple Profiles** - Unlimited named profiles (work, personal, dev, staging, etc.)
 - ✅ **Live Validation** - API key and model validation before switching
+- 🎯 **Interactive Menu** - Arrow-key navigation for switch and delete commands
 - 💻 **Shell Integration** - Show active profile in your prompt
 - 🧙 **Setup Wizard** - Interactive guided setup
 - 🏥 **Diagnostics** - Built-in health checks with `doctor` command
@@ -33,9 +35,11 @@ bash install.sh
 # Create your first profile
 claude-switch setup
 
-# Switch profiles
+# Switch profiles with interactive menu
+claude-switch switch
+
+# Or switch directly
 claude-switch switch work
-claude-switch switch personal
 
 # Check status
 claude-switch status
@@ -60,10 +64,12 @@ claude-switch status
 
 ```bash
 claude-switch create          # Create new profile
-claude-switch switch <name>   # Switch profiles
+claude-switch switch          # Interactive menu to switch profiles
+claude-switch switch <name>   # Switch to specific profile
 claude-switch list            # List all profiles
 claude-switch status          # Show active profile
-claude-switch delete <name>   # Delete profile
+claude-switch delete          # Interactive menu to delete profile
+claude-switch delete <name>   # Delete specific profile
 claude-switch doctor          # Run diagnostics
 claude-switch help            # Show all commands
 ```
