@@ -170,6 +170,32 @@ claude-switch help
 claude-switch
 ```
 
+### Uninstall
+
+```bash
+# Run interactive uninstall wizard
+claude-switch uninstall
+```
+
+**The uninstaller will:**
+1. Show what will be removed (binary and library files)
+2. Ask if you want to remove user data (profiles, settings)
+3. Remove keychain entries for all profiles
+4. Optionally remove shell integration
+
+**What gets removed:**
+- `/usr/local/bin/claude-switch` - Main executable
+- `/usr/local/lib/claude-switch/` - Library modules
+
+**Optional removal (you choose):**
+- `~/.claude/profiles/` - All profile configurations
+- `~/.claude/settings.json` - Active settings
+- `~/.claude/active-profile` - Active profile marker
+- Keychain entries - API keys for all profiles
+- Shell integration files
+
+**Note:** If you choose to preserve user data, you can reinstall claude-switch later and your profiles will still be available.
+
 ## Advanced Usage
 
 ### Verifying Active Profile

@@ -71,6 +71,7 @@ claude-switch status          # Show active profile
 claude-switch delete          # Interactive menu to delete profile
 claude-switch delete <name>   # Delete specific profile
 claude-switch doctor          # Run diagnostics
+claude-switch uninstall       # Uninstall claude-switch
 claude-switch help            # Show all commands
 ```
 
