@@ -420,13 +420,46 @@ main() {
             local skip_validation="false"
 
             # Check for flags
-            if [ "$2" = "--skip-validation" ]; then
+            if [ "$2" = "--skip-validation" ] || [ "$1" = "--skip-validation" ]; then
                 skip_validation="true"
             fi
 
-            if [ -z "$profile_name" ]; then
-                print_error "Profile name required. Usage: claude-switch switch <profile>"
-                return 1
+            # If no profile name provided, show interactive menu
+            if [ -z "$profile_name" ] || [ "$profile_name" = "--skip-validation" ]; then
+                # Get list of profiles
+                local profiles
+                profiles=$(list_profiles)
+
+                if [ -z "$profiles" ]; then
+                    print_error "No profiles found. Create one with 'claude-switch create'"
+                    return 1
+                fi
+
+                # Convert to array
+                local profile_array=()
+                while IFS= read -r profile; do
+                    if [ -n "$profile" ]; then
+                        # Mark active profile
+                        local active
+                        active=$(get_active_profile)
+                        if [ "$profile" = "$active" ]; then
+                            profile_array+=("$profile (active)")
+                        else
+                            profile_array+=("$profile")
+                        fi
+                    fi
+                done <<< "$profiles"
+
+                # Show interactive menu
+                profile_name=$(select_from_menu "Select profile to switch to:" "${profile_array[@]}")
+
+                if [ $? -ne 0 ] || [ -z "$profile_name" ]; then
+                    print_info "Switch cancelled"
+                    return 0
+                fi
+
+                # Remove " (active)" suffix if present
+                profile_name="${profile_name% (active)}"
             fi
 
             if switch_profile "$profile_name" "$skip_validation"; then
@@ -447,9 +480,42 @@ main() {
         delete)
             local profile_name="$1"
 
+            # If no profile name provided, show interactive menu
             if [ -z "$profile_name" ]; then
-                print_error "Profile name required. Usage: claude-switch delete <profile>"
-                return 1
+                # Get list of profiles
+                local profiles
+                profiles=$(list_profiles)
+
+                if [ -z "$profiles" ]; then
+                    print_error "No profiles found"
+                    return 1
+                fi
+
+                # Convert to array
+                local profile_array=()
+                while IFS= read -r profile; do
+                    if [ -n "$profile" ]; then
+                        # Mark active profile
+                        local active
+                        active=$(get_active_profile)
+                        if [ "$profile" = "$active" ]; then
+                            profile_array+=("$profile (active)")
+                        else
+                            profile_array+=("$profile")
+                        fi
+                    fi
+                done <<< "$profiles"
+
+                # Show interactive menu
+                profile_name=$(select_from_menu "Select profile to delete:" "${profile_array[@]}")
+
+                if [ $? -ne 0 ] || [ -z "$profile_name" ]; then
+                    print_info "Deletion cancelled"
+                    return 0
+                fi
+
+                # Remove " (active)" suffix if present
+                profile_name="${profile_name% (active)}"
             fi
 
             print_warning "This will permanently delete profile '$profile_name' and its API key from keychain."

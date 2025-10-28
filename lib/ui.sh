@@ -149,3 +149,95 @@ show_progress() {
 clear_progress() {
     printf "\r%80s\r" " "
 }
+
+# Interactive menu with arrow key navigation
+# Usage: selected=$(select_from_menu "Prompt" "${options[@]}")
+# Returns: Selected option or empty string if cancelled
+select_from_menu() {
+    local prompt="$1"
+    shift
+    local options=("$@")
+    local selected=0
+    local num_options=${#options[@]}
+
+    # If no options, return empty
+    if [ "$num_options" -eq 0 ]; then
+        return 1
+    fi
+
+    # Hide cursor
+    tput civis >&2
+
+    # Function to draw menu
+    draw_menu() {
+        # Clear from current line down
+        tput ed >&2
+
+        # Print prompt
+        printf "${CYAN}%s${NC}\n" "$prompt" >&2
+        printf "${CYAN}%s${NC}\n" "Use ↑/↓ to navigate, Enter to select, q to cancel" >&2
+        echo "" >&2
+
+        # Print options
+        for i in "${!options[@]}"; do
+            if [ "$i" -eq "$selected" ]; then
+                printf "${GREEN}❯ %s${NC}\n" "${options[$i]}" >&2
+            else
+                printf "  %s\n" "${options[$i]}" >&2
+            fi
+        done
+    }
+
+    # Initial draw
+    draw_menu
+
+    # Read user input
+    while true; do
+        # Save cursor position
+        local lines_to_move=$((num_options + 3))
+
+        # Read single character
+        read -rsn1 key
+
+        # Handle escape sequences for arrow keys
+        if [[ $key == $'\x1b' ]]; then
+            read -rsn2 key
+        fi
+
+        # Move cursor back up to redraw
+        tput cuu $lines_to_move >&2
+
+        case "$key" in
+            '[A'|'k') # Up arrow or k
+                ((selected--))
+                if [ "$selected" -lt 0 ]; then
+                    selected=$((num_options - 1))
+                fi
+                ;;
+            '[B'|'j') # Down arrow or j
+                ((selected++))
+                if [ "$selected" -ge "$num_options" ]; then
+                    selected=0
+                fi
+                ;;
+            '') # Enter
+                # Show cursor
+                tput cnorm >&2
+                # Clear menu
+                tput ed >&2
+                echo "${options[$selected]}"
+                return 0
+                ;;
+            'q'|'Q') # Quit
+                # Show cursor
+                tput cnorm >&2
+                # Clear menu
+                tput ed >&2
+                return 1
+                ;;
+        esac
+
+        # Redraw menu
+        draw_menu
+    done
+}
